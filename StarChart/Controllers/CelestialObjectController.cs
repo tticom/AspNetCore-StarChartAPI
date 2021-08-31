@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Linq;
+using Microsoft.AspNetCore.Mvc;
 using StarChart.Data;
+using StarChart.Models;
 
 namespace StarChart.Controllers
 {
@@ -22,16 +24,22 @@ namespace StarChart.Controllers
             if (celestialObject is null)
                 return NotFound();
 
+            var sats = _context.CelestialObjects.Where(co => co.OrbitedObjectId == id);
+            celestialObject.Satellites.AddRange(sats);
+
             return Ok(celestialObject);
         }
 
         [HttpGet("{name}")]
         public IActionResult GetByName(string name)
         {
-            var celestialObject = _context.CelestialObjects.Find(name);
+            var celestialObject = _context.CelestialObjects.Where(co => co.Name == name).First();
 
             if (celestialObject is null)
                 return NotFound();
+
+            var sats = _context.CelestialObjects.Where(co => co.OrbitedObjectId == celestialObject.Id);
+            celestialObject.Satellites.AddRange(sats);
 
             return Ok(celestialObject);
         }
@@ -39,7 +47,18 @@ namespace StarChart.Controllers
         [HttpGet]
         public IActionResult GetAll()
         {
-            return Ok(_context.CelestialObjects);
+            var celestialObjects = _context.CelestialObjects.ToList<CelestialObject>();
+
+            foreach(var co in celestialObjects)
+            {
+                if(!(co is null))
+                {
+                    var sats = _context.CelestialObjects.Where(c => c.OrbitedObjectId == co.Id);
+                    co.Satellites.AddRange(sats);
+                }
+            }
+
+            return Ok(celestialObjects);
         }
     }
 }
